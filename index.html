@@ -1145,6 +1145,12 @@
         if (!grid || !dotsWrap) return;
         var cards = grid.querySelectorAll(".feat-card");
         var dots = [];
+        // Timestamp of the customer's last interaction with the page.
+        // Autoplay must stay paused for a full 10 seconds after it;
+        // the autoplay's own scrolling never touches this, so its
+        // movement can never reset or shorten the pause.
+        var lastInteractionAt = 0;
+        function markInteraction() { lastInteractionAt = Date.now(); }
         // The edge a resting card's right side sits on: the track's
         // border-box right minus its 6px scroll-padding. Measuring to
         // the border-box edge instead put every target 6px past the
@@ -1164,7 +1170,7 @@
           b.type = "button";
           b.setAttribute("aria-label", "عرض " + (idx + 1));
           if (idx === 0) b.classList.add("active");
-          b.addEventListener("click", function () { goToCard(idx); });
+          b.addEventListener("click", function () { markInteraction(); goToCard(idx); });
           dotsWrap.appendChild(b);
           dots.push(b);
         });
@@ -1186,10 +1192,12 @@
 
         // Auto-play: advance every 4s, looping back to the first card.
         // ANY interaction with the page (tapping add buttons or
-        // steppers, swiping, scrolling, opening a sheet or the cart)
-        // pauses it; it resumes 5 seconds after the last interaction,
-        // and a tick is skipped entirely while a sheet or the cart is
-        // open or the page is hidden.
+        // steppers, swiping, scrolling, tapping a dot, opening a sheet
+        // or the cart) pauses it for a full 10 seconds measured from
+        // the LAST interaction; a tick is also skipped entirely while
+        // a sheet or the cart is open, the page is hidden, or fewer
+        // than 10 seconds have passed since the last interaction.
+        var PAUSE_MS = 10000;
         var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (!reduceMotion && cards.length > 1) {
           var autoTimer = null, resumeTimer = null;
@@ -1205,6 +1213,7 @@
             stopAuto();
             autoTimer = setInterval(function () {
               if (document.hidden || anySheetOpen()) return;
+              if (Date.now() - lastInteractionAt < PAUSE_MS) return;
               var idx = currentIndex();
               var next = idx + 1;
               if (next >= cards.length || idx === lastTickIndex) next = 0;
@@ -1221,16 +1230,24 @@
           }
           function scheduleResume() {
             if (resumeTimer) clearTimeout(resumeTimer);
+            // Resume only once a full PAUSE_MS has passed since the
+            // last interaction; if a newer interaction landed while
+            // this timer was pending, wait out the remainder instead
+            // of resuming early.
+            var wait = PAUSE_MS - (Date.now() - lastInteractionAt);
+            if (wait < 0) wait = 0;
             resumeTimer = setTimeout(function () {
+              resumeTimer = null;
+              if (Date.now() - lastInteractionAt < PAUSE_MS) { scheduleResume(); return; }
               if (!anySheetOpen()) startAuto();
-            }, 5000);
+            }, wait);
           }
-          function noteInteraction() { pauseAuto(); scheduleResume(); }
+          function noteInteraction() { markInteraction(); pauseAuto(); scheduleResume(); }
           ["pointerdown", "touchstart", "wheel", "keydown"].forEach(function (ev) {
             document.addEventListener(ev, noteInteraction, { passive: true });
           });
           ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach(function (ev) {
-            document.addEventListener(ev, scheduleResume, { passive: true });
+            document.addEventListener(ev, noteInteraction, { passive: true });
           });
           document.addEventListener("visibilitychange", function () {
             if (document.hidden) pauseAuto(); else scheduleResume();
@@ -1264,12 +1281,14 @@
       var custNote = document.getElementById("custNote");
 
       // Remember the customer's details on this device so they don't
-      // retype them on the next order (name, mobile, address only).
+      // retype them on the next order (name, mobile, address and the
+      // order note — all restored on load, so a refresh keeps them).
       var CUST_KEY = "abb-customer";
       function saveCustomer() {
         try {
           localStorage.setItem(CUST_KEY, JSON.stringify({
-            name: custName.value, phone: custPhone.value, address: custAddress.value
+            name: custName.value, phone: custPhone.value, address: custAddress.value,
+            note: custNote.value
           }));
         } catch (err) { /* storage unavailable: ordering still works */ }
       }
@@ -1280,6 +1299,7 @@
           if (saved.name) custName.value = saved.name;
           if (saved.phone) custPhone.value = saved.phone;
           if (saved.address) custAddress.value = saved.address;
+          if (saved.note) custNote.value = saved.note;
         } catch (err) { /* ignore unreadable saved data */ }
       }
       loadCustomer();
@@ -1530,7 +1550,7 @@
           renderCart();
         });
       });
-      custNote.addEventListener("input", function () { renderCart(); });
+      custNote.addEventListener("input", function () { saveCustomer(); renderCart(); });
 
       // Name + mobile are required: block the WhatsApp tap until both are
       // filled, and point at the missing fields instead of opening WhatsApp
