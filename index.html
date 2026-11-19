@@ -436,6 +436,43 @@
       }
       .btn-send-wa svg { width: 24px; height: 24px; flex: none; }
       .btn-send-wa.disabled { opacity: .45; pointer-events: none; box-shadow: none; }
+      .order-form { display: grid; gap: 10px; margin-bottom: 14px; }
+      .order-field label, .order-field .order-label {
+        display: block;
+        font-weight: 800; font-size: .95rem;
+        margin-bottom: 5px;
+      }
+      .order-field input {
+        width: 100%;
+        min-height: 48px;
+        padding: 9px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface-2);
+        color: var(--ink);
+        font: inherit; font-size: 1rem;
+      }
+      .order-field input:focus { outline: none; border-color: var(--gold); }
+      .order-field input.invalid { border-color: var(--red); }
+      .order-field input.tel { direction: ltr; text-align: right; }
+      .type-pills { display: flex; gap: 8px; }
+      .type-pill {
+        flex: 1;
+        min-height: 46px;
+        padding: 8px 12px;
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-2);
+        color: var(--ink);
+        font-size: 1rem; font-weight: 800;
+      }
+      .type-pill.active { background: var(--red); border-color: var(--red); color: #fff; }
+      .order-error {
+        margin: 0;
+        color: var(--red);
+        font-weight: 800; font-size: .95rem;
+      }
+      @media (prefers-color-scheme: dark) { .order-error { color: var(--gold-soft); } }
       .cart-continue {
         display: block; width: 100%;
         margin-top: 10px; padding: 8px;
@@ -657,6 +694,28 @@
         <div class="cart-list" id="cartList"></div>
         <div class="cart-foot">
           <div class="cart-grand"><span>الإجمالي</span><span class="val" id="cartGrandTotal">0 جنيه</span></div>
+          <div class="order-form">
+            <div class="order-field">
+              <label for="custName">اسم العميل</label>
+              <input id="custName" type="text" placeholder="اكتب اسمك" autocomplete="name" />
+            </div>
+            <div class="order-field">
+              <label for="custPhone">رقم الموبايل</label>
+              <input id="custPhone" class="tel" type="tel" inputmode="numeric" placeholder="01xxxxxxxxx" autocomplete="tel" />
+            </div>
+            <div class="order-field">
+              <span class="order-label" id="orderTypeLabel">نوع الطلب</span>
+              <div class="type-pills" role="group" aria-labelledby="orderTypeLabel">
+                <button type="button" class="type-pill active" data-order-type="takeaway">تيك أواي</button>
+                <button type="button" class="type-pill" data-order-type="delivery">دليفري</button>
+              </div>
+            </div>
+            <div class="order-field" id="addressWrap" hidden>
+              <label for="custAddress">العنوان</label>
+              <input id="custAddress" type="text" placeholder="العنوان بالتفصيل" autocomplete="street-address" />
+            </div>
+            <p class="order-error" id="orderError" role="alert" hidden>من فضلك اكتب اسمك ورقم موبايلك قبل ما تبعت الطلب</p>
+          </div>
           <a class="btn-send-wa disabled" id="sendOrderWa" href="https://wa.me/201011991017" target="_blank" rel="noopener">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.14-2.9-7.01A9.83 9.83 0 0 0 12.04 2m0 18.03h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.83c0 4.54-3.7 8.23-8.23 8.23m4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.15.16-.29.18-.54.06-.25-.13-1.05-.38-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.51.11-.11.25-.29.37-.43.12-.15.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.13-.56-1.35-.77-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.13.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.6.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.15-1.18-.06-.1-.23-.16-.48-.28"/></svg>
             إرسال الطلب واتساب
@@ -970,6 +1029,14 @@
       var cartList = document.getElementById("cartList");
       var sendOrderWa = document.getElementById("sendOrderWa");
 
+      // Customer details, filled in the cart view before sending
+      var custName = document.getElementById("custName");
+      var custPhone = document.getElementById("custPhone");
+      var custAddress = document.getElementById("custAddress");
+      var addressWrap = document.getElementById("addressWrap");
+      var orderError = document.getElementById("orderError");
+      var orderType = "takeaway"; // or "delivery"
+
       function cartTotals() {
         var count = 0, total = 0;
         Object.keys(cart).forEach(function (id) {
@@ -1027,6 +1094,16 @@
           sendOrderWa.classList.add("disabled");
         } else {
           var lines = ["طلب جديد من منيو البيت بيتك:", ""];
+          var nm = custName.value.trim();
+          var ph = custPhone.value.trim();
+          if (nm) lines.push("الاسم: " + nm);
+          if (ph) lines.push("رقم الموبايل: " + ph);
+          lines.push("نوع الطلب: " + (orderType === "delivery" ? "دليفري" : "تيك أواي"));
+          if (orderType === "delivery") {
+            var ad = custAddress.value.trim();
+            if (ad) lines.push("العنوان: " + ad);
+          }
+          lines.push("");
           ids.forEach(function (id) {
             var it = CATALOG[id];
             lines.push("• " + it.n + " × " + cart[id] + " — " + fmt(it.p * cart[id]) + " جنيه (الواحد " + fmt(it.p) + " جنيه)");
@@ -1049,6 +1126,41 @@
         renderCart();
       });
 
+      // Order type pills: دليفري reveals the address field, تيك أواي hides it
+      document.querySelectorAll("[data-order-type]").forEach(function (pill) {
+        pill.addEventListener("click", function () {
+          orderType = pill.getAttribute("data-order-type");
+          document.querySelectorAll("[data-order-type]").forEach(function (p) {
+            p.classList.toggle("active", p === pill);
+          });
+          addressWrap.hidden = orderType !== "delivery";
+          renderCart();
+        });
+      });
+
+      // Keep the WhatsApp message in sync with what the customer types,
+      // and clear the "fill these in" warning once both fields are filled
+      [custName, custPhone, custAddress].forEach(function (input) {
+        input.addEventListener("input", function () {
+          input.classList.remove("invalid");
+          if (custName.value.trim() && custPhone.value.trim()) orderError.hidden = true;
+          renderCart();
+        });
+      });
+
+      // Name + mobile are required: block the WhatsApp tap until both are
+      // filled, and point at the missing fields instead of opening WhatsApp
+      sendOrderWa.addEventListener("click", function (e) {
+        var nameOk = !!custName.value.trim();
+        var phoneOk = !!custPhone.value.trim();
+        if (nameOk && phoneOk) return;
+        e.preventDefault();
+        custName.classList.toggle("invalid", !nameOk);
+        custPhone.classList.toggle("invalid", !phoneOk);
+        orderError.hidden = false;
+        (nameOk ? custPhone : custName).focus();
+      });
+
       function openCart() { cartOverlay.classList.add("open"); document.body.style.overflow = "hidden"; }
       function closeCart() { cartOverlay.classList.remove("open"); document.body.style.overflow = ""; }
       document.getElementById("cartBar").addEventListener("click", openCart);
@@ -1059,16 +1171,19 @@
       renderCart();
 
       // Phone and WhatsApp links are plain native links with
-      // target="_blank" and NO JavaScript interception at all. Earlier
-      // versions attached click handlers that copied the number to the
-      // clipboard and showed a toast; inside in-app browsers (WhatsApp
-      // and similar WebViews) that extra work on the tap swallowed the
-      // action. And a link WITHOUT target="_blank" tries to navigate
-      // inside the page frame itself, which in-app browsers block — the
-      // dialer/WhatsApp app never opens. A clean link tap, opened out of
-      // the page frame via target="_blank", is what hands the number to
-      // the phone app and the wa.me link to WhatsApp reliably. Every
-      // tel: and wa.me anchor must keep target="_blank" rel="noopener".
+      // target="_blank". Earlier versions attached click handlers that
+      // copied the number to the clipboard and showed a toast; inside
+      // in-app browsers (WhatsApp and similar WebViews) that extra work
+      // on the tap swallowed the action. And a link WITHOUT
+      // target="_blank" tries to navigate inside the page frame itself,
+      // which in-app browsers block — the dialer/WhatsApp app never
+      // opens. A clean link tap, opened out of the page frame via
+      // target="_blank", is what hands the number to the phone app and
+      // the wa.me link to WhatsApp reliably. Every tel: and wa.me anchor
+      // must keep target="_blank" rel="noopener". The one deliberate
+      // exception: the order-send link's validation handler above, which
+      // only ever blocks the tap when name/mobile are still empty and
+      // otherwise lets the native link through untouched.
     </script>
   </body>
 </html>
