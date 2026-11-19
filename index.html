@@ -706,11 +706,11 @@
             <div class="order-field">
               <span class="order-label" id="orderTypeLabel">نوع الطلب</span>
               <div class="type-pills" role="group" aria-labelledby="orderTypeLabel">
-                <button type="button" class="type-pill active" data-order-type="takeaway">تيك أواي</button>
-                <button type="button" class="type-pill" data-order-type="delivery">دليفري</button>
+                <button type="button" class="type-pill" data-order-type="takeaway">تيك أواي</button>
+                <button type="button" class="type-pill active" data-order-type="delivery">دليفري</button>
               </div>
             </div>
-            <div class="order-field" id="addressWrap" hidden>
+            <div class="order-field" id="addressWrap">
               <label for="custAddress">العنوان</label>
               <input id="custAddress" type="text" placeholder="العنوان بالتفصيل" autocomplete="street-address" />
             </div>
@@ -1035,7 +1035,7 @@
       var custAddress = document.getElementById("custAddress");
       var addressWrap = document.getElementById("addressWrap");
       var orderError = document.getElementById("orderError");
-      var orderType = "takeaway"; // or "delivery"
+      var orderType = "delivery"; // or "takeaway"
 
       function cartTotals() {
         var count = 0, total = 0;
