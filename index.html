@@ -229,6 +229,13 @@
         scroll-padding-inline: 6px;
       }
       .feat-grid::-webkit-scrollbar { display: none; }
+      /* Card widths are exact fractions of the track's content box
+         (minus the 16px gaps, plus 2px of rounding slack), so a whole
+         number of cards — 1 on phones, 2 on small tablets, 3 on
+         desktop — always fits inside the track at a resting position.
+         A fixed 350px card could never do that: 3×350 + 2 gaps = 1082px
+         in a track at most 1016px wide, so the edge card was clipped
+         at every scroll position no matter where the track stopped. */
       .feat-card {
         background: var(--surface);
         border: 1px solid var(--line);
@@ -236,12 +243,12 @@
         overflow: hidden;
         box-shadow: var(--shadow);
         display: flex; flex-direction: column;
-        flex: 0 0 86%;
-        max-width: 420px;
+        flex: 0 0 100%;
         scroll-snap-align: start;
         scroll-snap-stop: always;
       }
-      @media (min-width: 720px) { .feat-card { flex-basis: 350px; } }
+      @media (min-width: 720px) { .feat-card { flex-basis: calc((100% - 18px) / 2); } }
+      @media (min-width: 1020px) { .feat-card { flex-basis: calc((100% - 34px) / 3); } }
       .feat-card .ph { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--surface-2); }
       .feat-card .ph img { width: 100%; height: 100%; object-fit: contain; background: var(--surface-2); }
       .feat-dots { display: flex; justify-content: center; gap: 7px; margin-top: 2px; direction: ltr; }
@@ -1138,10 +1145,18 @@
         if (!grid || !dotsWrap) return;
         var cards = grid.querySelectorAll(".feat-card");
         var dots = [];
+        // The edge a resting card's right side sits on: the track's
+        // border-box right minus its 6px scroll-padding. Measuring to
+        // the border-box edge instead put every target 6px past the
+        // snap position, so the track stopped mid-shift and the card
+        // at the far edge landed part-way outside the track.
+        function snapEdgeRight() {
+          return grid.getBoundingClientRect().right - 6;
+        }
         function goToCard(idx) {
           var card = cards[idx];
           if (!card) return;
-          var delta = card.getBoundingClientRect().right - grid.getBoundingClientRect().right;
+          var delta = card.getBoundingClientRect().right - snapEdgeRight();
           grid.scrollTo({ left: grid.scrollLeft + delta, behavior: "smooth" });
         }
         cards.forEach(function (card, idx) {
@@ -1155,7 +1170,7 @@
         });
         function currentIndex() {
           var best = 0, bestDist = Infinity;
-          var gridRight = grid.getBoundingClientRect().right;
+          var gridRight = snapEdgeRight();
           cards.forEach(function (card, idx) {
             var dist = Math.abs(card.getBoundingClientRect().right - gridRight);
             if (dist < bestDist) { bestDist = dist; best = idx; }
@@ -1181,11 +1196,20 @@
           function anySheetOpen() {
             return !!document.querySelector(".cart-overlay.open, .weight-overlay.open");
           }
+          // The last cards share one clamped resting position (the
+          // track cannot scroll past its end), so when the index stops
+          // advancing the next tick wraps back to the first card
+          // instead of pushing against the end forever.
+          var lastTickIndex = -1;
           function startAuto() {
             stopAuto();
             autoTimer = setInterval(function () {
               if (document.hidden || anySheetOpen()) return;
-              goToCard((currentIndex() + 1) % cards.length);
+              var idx = currentIndex();
+              var next = idx + 1;
+              if (next >= cards.length || idx === lastTickIndex) next = 0;
+              lastTickIndex = idx;
+              goToCard(next);
             }, 4000);
           }
           function stopAuto() {
