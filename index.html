@@ -46,7 +46,13 @@
         background: var(--bg);
         color: var(--ink);
         line-height: 1.6;
-        padding-bottom: 96px;
+        /* Enough room below the footer that the fixed cart bar
+           (60px tall + 12px offset + safe-area) never covers content */
+        padding-bottom: calc(128px + env(safe-area-inset-bottom, 0px));
+        /* The page itself must never scroll sideways; only the
+           carousel track scrolls horizontally */
+        overflow-x: hidden;
+        overflow-x: clip;
       }
       img { display: block; max-width: 100%; }
       a { color: inherit; }
@@ -219,8 +225,8 @@
         scroll-behavior: smooth;
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
-        padding: 4px 2px 14px;
-        margin-inline: -2px;
+        padding: 4px 6px 14px;
+        scroll-padding-inline: 6px;
       }
       .feat-grid::-webkit-scrollbar { display: none; }
       .feat-card {
@@ -1118,54 +1124,68 @@
       var popHead = document.getElementById("popular");
       if (popHead) spy.observe(popHead);
 
-      // Featured offers: horizontal swipe carousel dots
+      // Featured offers: horizontal swipe carousel dots + autoplay.
+      // The track is scrolled ONLY through its own scrollLeft — never
+      // scrollIntoView, which also scrolls the page itself (down and
+      // sideways) and made the whole page jump whenever autoplay
+      // advanced or a dot was tapped. In this RTL track the "start"
+      // edge is the RIGHT edge, so card positions are measured from
+      // the right; that keeps the resting card fully inside the track
+      // and the dots matched to the card actually on screen.
       (function () {
         var grid = document.getElementById("featGrid");
         var dotsWrap = document.getElementById("featDots");
         if (!grid || !dotsWrap) return;
         var cards = grid.querySelectorAll(".feat-card");
         var dots = [];
+        function goToCard(idx) {
+          var card = cards[idx];
+          if (!card) return;
+          var delta = card.getBoundingClientRect().right - grid.getBoundingClientRect().right;
+          grid.scrollTo({ left: grid.scrollLeft + delta, behavior: "smooth" });
+        }
         cards.forEach(function (card, idx) {
           var b = document.createElement("button");
           b.type = "button";
           b.setAttribute("aria-label", "عرض " + (idx + 1));
           if (idx === 0) b.classList.add("active");
-          b.addEventListener("click", function () {
-            card.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
-          });
+          b.addEventListener("click", function () { goToCard(idx); });
           dotsWrap.appendChild(b);
           dots.push(b);
         });
-        function updateDots() {
-          // In RTL the scrollLeft can be negative in some browsers; use absolute distance per card
+        function currentIndex() {
           var best = 0, bestDist = Infinity;
+          var gridRight = grid.getBoundingClientRect().right;
           cards.forEach(function (card, idx) {
-            var dist = Math.abs(card.getBoundingClientRect().left - grid.getBoundingClientRect().left);
+            var dist = Math.abs(card.getBoundingClientRect().right - gridRight);
             if (dist < bestDist) { bestDist = dist; best = idx; }
           });
+          return best;
+        }
+        function updateDots() {
+          var best = currentIndex();
           dots.forEach(function (d, i) { d.classList.toggle("active", i === best); });
         }
         grid.addEventListener("scroll", function () { window.requestAnimationFrame(updateDots); }, { passive: true });
         updateDots();
 
         // Auto-play: advance every 4s, looping back to the first card.
-        // Pauses while the user swipes/drags, resumes a few seconds after.
+        // ANY interaction with the page (tapping add buttons or
+        // steppers, swiping, scrolling, opening a sheet or the cart)
+        // pauses it; it resumes 5 seconds after the last interaction,
+        // and a tick is skipped entirely while a sheet or the cart is
+        // open or the page is hidden.
         var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (!reduceMotion && cards.length > 1) {
           var autoTimer = null, resumeTimer = null;
-          function currentIndex() {
-            var best = 0, bestDist = Infinity;
-            cards.forEach(function (card, idx) {
-              var dist = Math.abs(card.getBoundingClientRect().left - grid.getBoundingClientRect().left);
-              if (dist < bestDist) { bestDist = dist; best = idx; }
-            });
-            return best;
+          function anySheetOpen() {
+            return !!document.querySelector(".cart-overlay.open, .weight-overlay.open");
           }
           function startAuto() {
             stopAuto();
             autoTimer = setInterval(function () {
-              var next = (currentIndex() + 1) % cards.length;
-              cards[next].scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+              if (document.hidden || anySheetOpen()) return;
+              goToCard((currentIndex() + 1) % cards.length);
             }, 4000);
           }
           function stopAuto() {
@@ -1177,15 +1197,16 @@
           }
           function scheduleResume() {
             if (resumeTimer) clearTimeout(resumeTimer);
-            resumeTimer = setTimeout(startAuto, 4000);
+            resumeTimer = setTimeout(function () {
+              if (!anySheetOpen()) startAuto();
+            }, 5000);
           }
-          ["pointerdown", "touchstart", "wheel"].forEach(function (ev) {
-            grid.addEventListener(ev, pauseAuto, { passive: true });
-            dotsWrap.addEventListener(ev, pauseAuto, { passive: true });
+          function noteInteraction() { pauseAuto(); scheduleResume(); }
+          ["pointerdown", "touchstart", "wheel", "keydown"].forEach(function (ev) {
+            document.addEventListener(ev, noteInteraction, { passive: true });
           });
           ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach(function (ev) {
-            grid.addEventListener(ev, scheduleResume, { passive: true });
-            dotsWrap.addEventListener(ev, scheduleResume, { passive: true });
+            document.addEventListener(ev, scheduleResume, { passive: true });
           });
           document.addEventListener("visibilitychange", function () {
             if (document.hidden) pauseAuto(); else scheduleResume();
@@ -1195,12 +1216,14 @@
       })();
 
       // ---------- Cart + WhatsApp ordering ----------
-      // The cart itself is in-memory only for this visit. The customer's
-      // name/mobile/address are remembered in this browser's localStorage
-      // (see loadCustomer/saveCustomer below) so repeat customers don't
-      // retype them; nothing is sent anywhere except the WhatsApp
-      // message the customer taps to send.
-      var cart = {}; // cartId -> quantity
+      // The cart is saved in this browser's localStorage on every
+      // change and restored on load (see saveCart/loadCart below), so
+      // a refresh never loses what the customer already picked. The
+      // customer's name/mobile/address are remembered the same way
+      // (see loadCustomer/saveCustomer below) so repeat customers
+      // don't retype them; nothing is sent anywhere except the
+      // WhatsApp message the customer taps to send.
+      var cart = {}; // cartId -> quantity (variant ids included, e.g. "grills-7-w1")
       var cartOverlay = document.getElementById("cartOverlay");
       var cartList = document.getElementById("cartList");
       var sendOrderWa = document.getElementById("sendOrderWa");
@@ -1236,6 +1259,25 @@
         } catch (err) { /* ignore unreadable saved data */ }
       }
       loadCustomer();
+
+      // Cart persistence: the whole cart (plain items, weight lines and
+      // chicken size+style lines, with quantities) under one key.
+      var CART_KEY = "abb-cart";
+      function saveCart() {
+        try {
+          localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        } catch (err) { /* storage unavailable: ordering still works */ }
+      }
+      function loadCart() {
+        try {
+          var saved = JSON.parse(localStorage.getItem(CART_KEY) || "null");
+          if (!saved) return;
+          Object.keys(saved).forEach(function (id) {
+            var q = parseInt(saved[id], 10);
+            if (CATALOG[id] && q > 0) cart[id] = q;
+          });
+        } catch (err) { /* ignore unreadable saved cart */ }
+      }
       var addressWrap = document.getElementById("addressWrap");
       var orderError = document.getElementById("orderError");
       var orderType = "delivery"; // or "takeaway"
@@ -1348,6 +1390,9 @@
       }
 
       function renderCart() {
+        saveCart();
+        // Rebuilding the drawer list must not scroll it back to the top
+        var listScroll = cartList.scrollTop;
         // Card controls (menu items + featured cards share the same ids)
         document.querySelectorAll("[data-cart-control]").forEach(function (el) {
           var id = el.getAttribute("data-cart-control");
@@ -1392,6 +1437,7 @@
               '<button type="button" class="cart-remove" data-cart-action="remove" data-cart-id="' + id + '" aria-label="حذف ' + it.n + ' من الطلب">حذف</button></div>';
           }).join("");
         }
+        cartList.scrollTop = listScroll;
         // WhatsApp order link: the whole order as ONE message. The href is
         // kept up to date here so the send button stays a plain native
         // wa.me link with target="_blank" (same rule as the other links).
@@ -1482,6 +1528,7 @@
       document.getElementById("cartContinue").addEventListener("click", closeCart);
       cartOverlay.addEventListener("click", function (e) { if (e.target === cartOverlay) closeCart(); });
       document.addEventListener("keydown", function (e) { if (e.key === "Escape") { closeCart(); closeWeightSheet(); closeOptionsSheet(); } });
+      loadCart();
       renderCart();
 
       // Phone and WhatsApp links are plain native links with
