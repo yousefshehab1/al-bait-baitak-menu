@@ -915,6 +915,51 @@
         }
         grid.addEventListener("scroll", function () { window.requestAnimationFrame(updateDots); }, { passive: true });
         updateDots();
+
+        // Auto-play: advance every 4s, looping back to the first card.
+        // Pauses while the user swipes/drags, resumes a few seconds after.
+        var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!reduceMotion && cards.length > 1) {
+          var autoTimer = null, resumeTimer = null;
+          function currentIndex() {
+            var best = 0, bestDist = Infinity;
+            cards.forEach(function (card, idx) {
+              var dist = Math.abs(card.getBoundingClientRect().left - grid.getBoundingClientRect().left);
+              if (dist < bestDist) { bestDist = dist; best = idx; }
+            });
+            return best;
+          }
+          function startAuto() {
+            stopAuto();
+            autoTimer = setInterval(function () {
+              var next = (currentIndex() + 1) % cards.length;
+              cards[next].scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" });
+            }, 4000);
+          }
+          function stopAuto() {
+            if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+          }
+          function pauseAuto() {
+            stopAuto();
+            if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+          }
+          function scheduleResume() {
+            if (resumeTimer) clearTimeout(resumeTimer);
+            resumeTimer = setTimeout(startAuto, 4000);
+          }
+          ["pointerdown", "touchstart", "wheel"].forEach(function (ev) {
+            grid.addEventListener(ev, pauseAuto, { passive: true });
+            dotsWrap.addEventListener(ev, pauseAuto, { passive: true });
+          });
+          ["pointerup", "pointercancel", "touchend", "touchcancel"].forEach(function (ev) {
+            grid.addEventListener(ev, scheduleResume, { passive: true });
+            dotsWrap.addEventListener(ev, scheduleResume, { passive: true });
+          });
+          document.addEventListener("visibilitychange", function () {
+            if (document.hidden) pauseAuto(); else scheduleResume();
+          });
+          startAuto();
+        }
       })();
 
       // ---------- Cart + WhatsApp ordering ----------
