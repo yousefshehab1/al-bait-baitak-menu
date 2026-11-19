@@ -39,7 +39,14 @@
         }
       }
       * { box-sizing: border-box; }
-      html { scroll-behavior: smooth; }
+      html {
+        overflow-x: hidden;
+        overflow-x: clip;
+        scroll-behavior: smooth;
+        /* Anchor jumps (category nav) stop short of the fixed cart
+           bar, so a section never parks hidden underneath it */
+        scroll-padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+      }
       body {
         margin: 0;
         font-family: "Cairo", "Segoe UI", Tahoma, sans-serif;
@@ -244,6 +251,7 @@
         box-shadow: var(--shadow);
         display: flex; flex-direction: column;
         flex: 0 0 100%;
+        min-width: 0;
         scroll-snap-align: start;
         scroll-snap-stop: always;
       }
@@ -251,6 +259,16 @@
       @media (min-width: 1020px) { .feat-card { flex-basis: calc((100% - 34px) / 3); } }
       .feat-card .ph { position: relative; aspect-ratio: 4/3; overflow: hidden; background: var(--surface-2); }
       .feat-card .ph img { width: 100%; height: 100%; object-fit: contain; background: var(--surface-2); }
+      @media (max-width: 719px) {
+        /* Shorter photo box on phones: the posters are square, so a
+           4/3 box renders them ~270px tall and pushes the price and
+           add button far down the screen, where the fixed cart bar
+           slices through them. A 16/10 box keeps the whole poster
+           visible (contain — nothing is cropped) at ~225px tall, so
+           the title, description, price and button fit on one screen. */
+        .feat-card .ph { aspect-ratio: 16/10; }
+        .feat-body { padding: 12px 14px 14px; }
+      }
       .feat-dots { display: flex; justify-content: center; gap: 7px; margin-top: 2px; direction: ltr; }
       .feat-dots button { width: 9px; height: 9px; border-radius: 999px; border: 0; padding: 0; background: var(--line); transition: all .2s ease; }
       .feat-dots button.active { width: 26px; background: var(--red); }
@@ -278,14 +296,20 @@
       .price .old { color: var(--ink-soft); text-decoration: line-through; font-size: 1rem; margin-inline-end: 6px; }
 
       /* ---------- Menu list ---------- */
-      .items { display: grid; gap: 10px; margin-top: 14px; }
-      @media (min-width: 720px) { .items { grid-template-columns: 1fr 1fr; } }
+      /* The column is minmax(0, 1fr), never auto: an auto column is
+         sized by the widest card's min-content, so one card whose
+         controls grow (add button + "in cart" badge after a sheet
+         add) used to stretch EVERY card in the section past the
+         viewport and push the fixed cart bar off-screen with it. */
+      .items { display: grid; gap: 10px; margin-top: 14px; grid-template-columns: minmax(0, 1fr); }
+      @media (min-width: 720px) { .items { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       .item {
         background: var(--surface);
         border: 1px solid var(--line);
         border-radius: 14px;
         padding: 12px 14px;
         display: flex; align-items: center; gap: 12px;
+        min-width: 0;
       }
       .item-thumb { width: 112px; height: 112px; border-radius: 14px; object-fit: cover; flex: none; border: 1px solid var(--line); background: var(--surface-2); }
       .item-thumb.fit-contain { object-fit: contain; }
@@ -298,7 +322,7 @@
         padding: 1px 9px 2px; border-radius: 999px;
       }
       .item-desc { color: var(--ink-soft); font-size: .88rem; margin-top: 2px; }
-      .item-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; }
+      .item-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: none; min-width: 0; max-width: 46%; }
       .item .price { font-size: 1.15rem; }
       .no-results {
         display: none;
@@ -307,7 +331,15 @@
       }
 
       /* ---------- Cart controls ---------- */
-      .cart-control { display: flex; align-items: center; }
+      .cart-control { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; }
+      /* Inside a menu row the price column is narrow: after a sheet
+         add (weight picker / chicken options) the control holds the
+         add button AND the "in cart" badge. Side by side they were
+         ~225px wide — wider than the column — and that min-content
+         width is what stretched the whole grid. Stacked, the badge
+         sits under the button and the control stays button-wide. */
+      .item-side .cart-control { flex-direction: column; align-items: flex-end; flex-wrap: nowrap; gap: 6px; }
+      .item-side .in-cart-badge { margin-inline-start: 0; }
       .add-btn {
         display: inline-flex; align-items: center; gap: 6px;
         min-height: 40px;
@@ -357,11 +389,15 @@
       /* ---------- Floating cart bar ---------- */
       .cart-bar {
         position: fixed; z-index: 60;
-        inset-inline: 14px;
+        /* Physical left/right (not inset-inline): with logical
+           insets + max-width + auto margins, the RTL context let the
+           bar drift — it measured 19px too wide and shifted off the
+           left edge of a 390px screen, clipping the total. Physical
+           edges + auto margins pin and center it exactly. */
+        left: 14px; right: 14px;
         bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         max-width: 640px; margin: 0 auto;
         display: flex; align-items: center; gap: 12px;
-        width: calc(100% - 28px);
         min-height: 60px;
         padding: 10px 18px;
         border: 2px solid var(--gold);
@@ -382,8 +418,30 @@
         font-weight: 900; font-size: .98rem;
         padding: 0 8px; flex: none;
       }
-      .cart-bar .cart-label { flex: 1; }
-      .cart-bar .cart-total { color: var(--gold-soft); font-weight: 900; white-space: nowrap; }
+      /* The label is the only part allowed to shrink (with an
+         ellipsis if it ever has to); the total never gives up space,
+         so it always renders in full */
+      .cart-bar .cart-label { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cart-bar .cart-total { color: var(--gold-soft); font-weight: 900; white-space: nowrap; flex: none; }
+      @media (max-width: 560px) {
+        /* Compact bar on phones: tighter insets, gaps and padding and
+           a smaller icon, badge and total, so icon + count + label +
+           total (e.g. "930 جنيه") all fit inside a 360px screen */
+        .cart-bar {
+          left: 10px; right: 10px;
+          gap: 8px;
+          min-height: 54px;
+          /* Extra padding on the physical left, where the total
+             sits in RTL: if a browser window is ever wider than the
+             visible area and the bar's left tip is cropped, the
+             total still starts well inside the screen */
+          padding: 8px 12px 8px 24px;
+          font-size: .93rem;
+        }
+        .cart-bar svg { width: 22px; height: 22px; }
+        .cart-bar .cart-count { min-width: 26px; height: 26px; font-size: .9rem; padding: 0 6px; }
+        .cart-bar .cart-total { font-size: .95rem; }
+      }
 
       /* ---------- Cart drawer ---------- */
       .cart-overlay {
