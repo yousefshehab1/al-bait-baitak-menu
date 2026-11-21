@@ -11,19 +11,22 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
     <style>
       :root {
-        --red: #d21f26;
-        --red-deep: #9c1218;
-        --gold: #f0a51a;
-        --gold-soft: #ffd35c;
+        /* Logo palette: white page, the logo's orange as the only
+           accent, near-black text. --red/--gold names are kept from
+           the original build; both now hold orange tones. */
+        --red: #e85d04;
+        --red-deep: #bc4c03;
+        --gold: #f4791f;
+        --gold-soft: #ffb37a;
         --wa: #1faa55;
-        --bg: #faf2df;
-        --bg-2: #f3e7cb;
-        --surface: #fffdf7;
-        --surface-2: #f8ecd2;
+        --bg: #ffffff;
+        --bg-2: #fff8f2;
+        --surface: #ffffff;
+        --surface-2: #fbf3ec;
         --ink: #221407;
         --ink-soft: #5d4a33;
-        --line: #e3d3ae;
-        --shadow: 0 10px 30px rgba(80, 45, 0, .14);
+        --line: #eee0d2;
+        --shadow: 0 10px 30px rgba(120, 58, 0, .12);
         --hero-ink: #fff7e8;
       }
       @media (prefers-color-scheme: dark) {
@@ -145,8 +148,8 @@
       .btn:active { transform: scale(.97); }
       .btn svg { width: 22px; height: 22px; flex: none; }
       .btn-wa { background: var(--wa); color: #fff; box-shadow: 0 10px 24px rgba(31,170,85,.35); }
-      .btn-call { background: var(--gold); color: #2a1802; box-shadow: 0 10px 24px rgba(240,165,26,.3); }
-      .btn-ghost { background: rgba(255,247,232,.12); color: var(--hero-ink); border: 1.5px solid rgba(255,211,92,.65); }
+      .btn-call { background: var(--gold); color: #2a1802; box-shadow: 0 10px 24px rgba(244,121,31,.3); }
+      .btn-ghost { background: rgba(255,247,232,.12); color: var(--hero-ink); border: 1.5px solid rgba(255,179,102,.7); }
       .hero-meta {
         margin-top: 20px;
         display: flex; flex-wrap: wrap; gap: 8px 18px;
@@ -202,7 +205,7 @@
         font-family: inherit;
         font-weight: 700; font-size: .95rem;
       }
-      .cats button.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+      .cats button.active { background: var(--red); border-color: var(--red); color: #fff; }
 
       main { max-width: 1060px; margin: 0 auto; padding: 0 16px; }
 
@@ -231,7 +234,7 @@
          the card wider than its grid column. */
       .card .cart-control { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
       .card .in-cart-badge { margin-inline-start: 0; }
-      /* Compact black round + button on the cards, like the
+      /* Compact orange round + button on the cards, like the
          reference layout; the tap still runs the exact same cart
          action (plain add, weight picker, or chicken options) */
       .add-btn {
@@ -239,7 +242,7 @@
         width: 44px; height: 44px; min-height: 44px;
         padding: 0;
         border: 0; border-radius: 50%;
-        background: var(--ink); color: var(--bg);
+        background: var(--red); color: #fff;
         font-size: 0; font-weight: 800;
         box-shadow: 0 6px 14px rgba(0,0,0,.25);
         flex: none;
@@ -536,7 +539,7 @@
         border: 0; border-radius: 999px;
         background: var(--red); color: #fff;
         font-size: 1.05rem; font-weight: 900;
-        box-shadow: 0 8px 20px rgba(210,31,38,.3);
+        box-shadow: 0 8px 20px rgba(232,93,4,.3);
       }
       .opt-confirm:active { transform: scale(.98); }
 
@@ -597,7 +600,7 @@
       .phone-card svg { width: 24px; height: 24px; flex: none; }
       .phone-card .lbl { font-size: .8rem; color: #c9b28c; font-weight: 700; }
       .phone-card .num { font-size: 1.15rem; font-weight: 900; color: #fff; direction: ltr; unicode-bidi: embed; }
-      .foot-note { margin-top: 22px; font-size: .85rem; color: #a68d5f; }
+      .foot-note { margin-top: 22px; font-size: .85rem; color: #9a8468; }
 
       @media (prefers-reduced-motion: reduce) {
         html { scroll-behavior: auto; }
@@ -666,7 +669,7 @@
         <p class="foot-addr">التوصيل للمنازل متاح — اطلب بالتليفون أو واتساب</p>
         <div class="phones">
           <a class="phone-card" href="tel:+201006080661" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="#f0a51a" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="#f4791f" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
             <span><span class="lbl">للطلب بالتليفون</span><br /><span class="num">01006080661</span></span>
           </a>
           <a class="phone-card" href="https://wa.me/201011991017" target="_blank" rel="noopener">
@@ -674,11 +677,11 @@
             <span><span class="lbl">واتساب</span><br /><span class="num">01011991017</span></span>
           </a>
           <a class="phone-card" href="tel:+20404671103" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="#f0a51a" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="#f4791f" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
             <span><span class="lbl">تليفون أرضي</span><br /><span class="num">0404671103</span></span>
           </a>
           <a class="phone-card" href="tel:+20404673184" target="_blank" rel="noopener">
-            <svg viewBox="0 0 24 24" fill="#f0a51a" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
+            <svg viewBox="0 0 24 24" fill="#f4791f" aria-hidden="true"><path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24 11.4 11.4 0 0 0 3.57.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"/></svg>
             <span><span class="lbl">تليفون أرضي</span><br /><span class="num">0404673184</span></span>
           </a>
         </div>
