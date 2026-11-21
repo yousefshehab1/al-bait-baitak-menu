@@ -229,11 +229,13 @@
       /* ---------- Cart controls ---------- */
       .cart-control { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; }
       /* On a card the control sits in the foot row next to the price:
-         the round add button, with the "in cart" badge beside it for
-         weight/options items; the row wraps instead of ever pushing
-         the card wider than its grid column. */
-      .card .cart-control { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
-      .card .in-cart-badge { margin-inline-start: 0; }
+         the round add button (or the stepper, once the item is in the
+         cart) with the "في الطلب" badge stacked UNDER it. Stacked,
+         never beside: side-by-side widened the narrow 2-column cards
+         and broke the page at 412px. min-width: 0 is kept so the
+         control can never push the card past its grid column. */
+      .card .cart-control { flex-direction: column; align-items: center; flex-wrap: nowrap; gap: 4px; justify-content: flex-start; min-width: 0; }
+      .card .in-cart-badge { margin-inline-start: 0; font-size: .72rem; line-height: 1.5; padding: 1px 8px 2px; }
       /* Compact orange round + button on the cards, like the
          reference layout; the tap still runs the exact same cart
          action (plain add, weight picker, or chicken options) */
@@ -1245,7 +1247,7 @@
             });
             el.innerHTML = addBtnHtml(id) + (oq > 0 ? '<span class="in-cart-badge">في الطلب: ' + oq + "</span>" : "");
           } else {
-            el.innerHTML = cart[id] > 0 ? stepperHtml(id, true) : addBtnHtml(id);
+            el.innerHTML = cart[id] > 0 ? stepperHtml(id, true) + '<span class="in-cart-badge">في الطلب</span>' : addBtnHtml(id);
           }
         });
         // Floating bar
