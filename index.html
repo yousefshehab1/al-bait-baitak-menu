@@ -855,8 +855,8 @@
             <div class="order-field" id="villageWrap">
               <label for="deliveryVillage">قرية التوصيل</label>
               <select id="deliveryVillage" aria-label="قرية التوصيل">
-                <option value="pickup" selected>استلام من المطعم</option>
-                <option value="sharshaba">شرشابة (+20 جنيه)</option>
+                <option value="pickup">استلام من المطعم</option>
+                <option value="sharshaba" selected>شرشابة (+20 جنيه)</option>
                 <option value="mit">ميت المخلص (+25 جنيه)</option>
                 <option value="kafr">كفر الجزيرة (+30 جنيه)</option>
                 <option value="senbat">سنباط (+30 جنيه)</option>
@@ -1288,7 +1288,7 @@
         other: { name: "قرية أخرى", fee: 0 }
       };
       var villageSelect = document.getElementById("deliveryVillage");
-      var deliveryVillage = (villageSelect && VILLAGES[villageSelect.value]) ? villageSelect.value : "pickup";
+      var deliveryVillage = (villageSelect && VILLAGES[villageSelect.value]) ? villageSelect.value : "sharshaba";
       var lastVillage = deliveryVillage !== "pickup" ? deliveryVillage : "sharshaba";
       function getDeliveryFee() {
         return VILLAGES[deliveryVillage] ? VILLAGES[deliveryVillage].fee : 0;
