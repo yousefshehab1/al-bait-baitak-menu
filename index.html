@@ -449,6 +449,57 @@
       .order-field input:focus { outline: none; border-color: var(--gold); }
       .order-field input.invalid { border-color: var(--red); }
       .order-field input.tel { direction: ltr; text-align: right; }
+      .order-field select {
+        width: 100%;
+        min-height: 48px;
+        padding: 9px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface-2);
+        color: var(--ink);
+        font: inherit; font-size: 1rem; font-weight: 700;
+      }
+      .order-field select:focus { outline: none; border-color: var(--gold); }
+      .cart-delivery-row {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 1.02rem; font-weight: 800; margin-bottom: 6px;
+        color: var(--ink-soft);
+      }
+      .cart-delivery-row .val { color: var(--ink); }
+      .cart-delivery-row[hidden], .cart-subtotal-row[hidden] { display: none; }
+      .cart-subtotal-row {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 1.02rem; font-weight: 800; margin-bottom: 6px;
+        color: var(--ink-soft);
+      }
+      .cart-subtotal-row .val { color: var(--ink); }
+      /* ---------- Suggestions (بيتطلب مع طلبك) ---------- */
+      .suggest-section {
+        padding: 14px 20px 4px;
+        border-top: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .suggest-section h3 { margin: 0; font-size: 1.08rem; font-weight: 900; }
+      .suggest-sub { margin: 2px 0 8px; color: var(--ink-soft); font-weight: 700; font-size: .9rem; }
+      .suggest-row {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--line);
+      }
+      .suggest-row:last-child { border-bottom: 0; }
+      .suggest-name { flex: 1; min-width: 0; font-weight: 800; font-size: .98rem; }
+      .suggest-price { font-weight: 900; color: var(--red-deep); white-space: nowrap; font-size: .95rem; }
+      @media (prefers-color-scheme: dark) { .suggest-price { color: var(--gold-soft); } }
+      .suggest-add {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 38px; height: 38px; min-height: 38px;
+        padding: 0; flex: none;
+        border: 0; border-radius: 50%;
+        background: var(--red); color: #fff;
+        box-shadow: 0 6px 14px rgba(0,0,0,.22);
+      }
+      .suggest-add:active { transform: scale(.92); }
+      .suggest-add svg { width: 20px; height: 20px; flex: none; }
       .type-pills { display: flex; gap: 8px; }
       .type-pill {
         flex: 1;
@@ -769,7 +820,14 @@
           <button type="button" class="cart-close" id="cartClose" aria-label="إغلاق الطلب">×</button>
         </div>
         <div class="cart-list" id="cartList"></div>
+        <div class="suggest-section" id="suggestionsSection" hidden>
+          <h3>بيتطلب مع طلبك</h3>
+          <p class="suggest-sub">دايما بيتطلب معاها</p>
+          <div id="suggestionsList"></div>
+        </div>
         <div class="cart-foot">
+          <div class="cart-subtotal-row" id="cartSubtotalRow" hidden><span>مجموع الأصناف</span><span class="val" id="cartSubtotalVal">0 جنيه</span></div>
+          <div class="cart-delivery-row" id="cartDeliveryRow" hidden><span>التوصيل</span><span class="val" id="cartDeliveryVal">0 جنيه</span></div>
           <div class="cart-grand"><span>الإجمالي</span><span class="val" id="cartGrandTotal">0 جنيه</span></div>
           <div class="order-form">
             <div class="order-field">
@@ -786,6 +844,17 @@
                 <button type="button" class="type-pill" data-order-type="takeaway">تيك أواي</button>
                 <button type="button" class="type-pill active" data-order-type="delivery">دليفري</button>
               </div>
+            </div>
+            <div class="order-field" id="villageWrap">
+              <label for="deliveryVillage">قرية التوصيل</label>
+              <select id="deliveryVillage" aria-label="قرية التوصيل">
+                <option value="pickup" selected>استلام من المطعم</option>
+                <option value="sharshaba">شرشابة (+20 جنيه)</option>
+                <option value="mit">ميت المخلص (+25 جنيه)</option>
+                <option value="kafr">كفر الجزيرة (+30 جنيه)</option>
+                <option value="senbat">سنباط (+30 جنيه)</option>
+                <option value="other">قرية أخرى</option>
+              </select>
             </div>
             <div class="order-field" id="addressWrap">
               <label for="custAddress">العنوان</label>
@@ -1154,9 +1223,11 @@
       var CUST_KEY = "abb-customer";
       function saveCustomer() {
         try {
+          var villageEl = document.getElementById("deliveryVillage");
           localStorage.setItem(CUST_KEY, JSON.stringify({
             name: custName.value, phone: custPhone.value, address: custAddress.value,
-            note: custNote.value
+            note: custNote.value,
+            village: villageEl ? villageEl.value : "pickup"
           }));
         } catch (err) { /* storage unavailable: ordering still works */ }
       }
@@ -1168,6 +1239,14 @@
           if (saved.phone) custPhone.value = saved.phone;
           if (saved.address) custAddress.value = saved.address;
           if (saved.note) custNote.value = saved.note;
+          if (saved.village) {
+            var villageEl = document.getElementById("deliveryVillage");
+            if (villageEl) {
+              for (var vi = 0; vi < villageEl.options.length; vi++) {
+                if (villageEl.options[vi].value === saved.village) { villageEl.value = saved.village; break; }
+              }
+            }
+          }
         } catch (err) { /* ignore unreadable saved data */ }
       }
       loadCustomer();
@@ -1192,7 +1271,94 @@
       }
       var addressWrap = document.getElementById("addressWrap");
       var orderError = document.getElementById("orderError");
-      var orderType = "delivery"; // or "takeaway"
+      var orderType = "takeaway"; // or "delivery" — derived from the village choice below
+
+      // ---------- Delivery villages + fees ----------
+      var VILLAGES = {
+        pickup: { name: "استلام من المطعم", fee: 0 },
+        sharshaba: { name: "شرشابة", fee: 20 },
+        mit: { name: "ميت المخلص", fee: 25 },
+        kafr: { name: "كفر الجزيرة", fee: 30 },
+        senbat: { name: "سنباط", fee: 30 },
+        other: { name: "قرية أخرى", fee: 0 }
+      };
+      var villageSelect = document.getElementById("deliveryVillage");
+      var deliveryVillage = (villageSelect && VILLAGES[villageSelect.value]) ? villageSelect.value : "pickup";
+      var lastVillage = deliveryVillage !== "pickup" ? deliveryVillage : "sharshaba";
+      function getDeliveryFee() {
+        return VILLAGES[deliveryVillage] ? VILLAGES[deliveryVillage].fee : 0;
+      }
+      function syncDeliveryUI() {
+        orderType = deliveryVillage === "pickup" ? "takeaway" : "delivery";
+        if (villageSelect && villageSelect.value !== deliveryVillage) villageSelect.value = deliveryVillage;
+        document.querySelectorAll("[data-order-type]").forEach(function (p) {
+          p.classList.toggle("active", p.getAttribute("data-order-type") === orderType);
+        });
+        addressWrap.hidden = orderType !== "delivery";
+      }
+
+      // ---------- Suggestions: بيتطلب مع طلبك ----------
+      // Resolve a suggestion's plain cart id by its exact menu name
+      // (base entries only — variant keys carry -w / -o suffixes).
+      function findBaseIdByName(name) {
+        var found = null;
+        Object.keys(CATALOG).forEach(function (id) {
+          if (found) return;
+          if (id.indexOf("-w") !== -1 || id.indexOf("-o") !== -1) return;
+          if (CATALOG[id].n === name) found = id;
+        });
+        return found;
+      }
+      var SUGG_IDS = {
+        rice: findBaseIdByName("طبق أرز بسمتي"),
+        molokhia: findBaseIdByName("طاجن ملوخية"),
+        bread: findBaseIdByName("رغيف عيش"),
+        fries: findBaseIdByName("باكت بطاطس"),
+        tahini: findBaseIdByName("علبة طحينة")
+      };
+      function isSuggestInCart(baseId) {
+        if (!baseId) return true;
+        if (cart[baseId] > 0) return true;
+        return Object.keys(cart).some(function (id) {
+          return cart[id] > 0 && id.indexOf(baseId + "-") === 0;
+        });
+      }
+      // Pairing rules per cart line (category first, then name keywords).
+      // Returns suggestion keys into SUGG_IDS for that one item.
+      function pairingsFor(id) {
+        var it = CATALOG[id];
+        if (!it) return [];
+        var name = it.n || "";
+        var catId = id.split("-")[0];
+        if (catId === "pizza" || name.indexOf("بيتزا") !== -1 || name.indexOf("مكرونة") !== -1 || name.indexOf("نجرسكو") !== -1) return ["fries"];
+        if (catId === "mandi" || name.indexOf("مندي") !== -1) return ["rice"];
+        if (catId === "tagines" || name.indexOf("طاجن") !== -1) return ["bread", "rice"];
+        if (name.indexOf("حواوشي") !== -1) return ["bread"];
+        if (catId === "meals" || catId === "sawani" || catId === "pigeon") return ["rice", "tahini"];
+        if (catId === "sandwiches") {
+          if (name.indexOf("فراخ") !== -1 || name.indexOf("فرخة") !== -1 || name.indexOf("كفتة") !== -1 || name.indexOf("لحمة") !== -1 || name.indexOf("كباب") !== -1) return ["rice", "molokhia"];
+          return ["fries", "tahini"];
+        }
+        if (catId === "grills" || name.indexOf("فراخ") !== -1 || name.indexOf("فرخة") !== -1 || name.indexOf("كفتة") !== -1 || name.indexOf("لحمة") !== -1 || name.indexOf("كباب") !== -1 || name.indexOf("مشويات") !== -1 || name.indexOf("مشكل") !== -1 || name.indexOf("ريش") !== -1 || name.indexOf("طرب") !== -1) return ["rice", "molokhia"];
+        return [];
+      }
+      function computeSuggestions() {
+        var seen = {};
+        var out = [];
+        Object.keys(cart).forEach(function (id) {
+          if (!(cart[id] > 0) || !CATALOG[id]) return;
+          pairingsFor(id).forEach(function (key) {
+            if (seen[key]) return;
+            seen[key] = true;
+            var suggId = SUGG_IDS[key];
+            if (!suggId || !CATALOG[suggId]) return;
+            if (SOLD_OUT.indexOf(suggId) !== -1) return;
+            if (isSuggestInCart(suggId)) return;
+            out.push(suggId);
+          });
+        });
+        return out;
+      }
 
       // ---------- Weight picker sheet (per-kilo items only) ----------
       var weightOverlay = document.getElementById("weightOverlay");
@@ -1364,11 +1530,44 @@
             el.innerHTML = cart[id] > 0 ? stepperHtml(id, true) + '<span class="in-cart-badge">في الطلب</span>' : addBtnHtml(id);
           }
         });
-        // Floating bar
+        // Floating bar + totals (grand total includes the delivery fee)
         var t = cartTotals();
+        var feeNow = t.count > 0 ? getDeliveryFee() : 0;
+        var grandNow = t.total + feeNow;
         document.getElementById("cartCount").textContent = t.count;
-        document.getElementById("cartBarTotal").textContent = fmt(t.total) + " جنيه";
-        document.getElementById("cartGrandTotal").textContent = fmt(t.total) + " جنيه";
+        document.getElementById("cartBarTotal").textContent = fmt(grandNow) + " جنيه";
+        document.getElementById("cartGrandTotal").textContent = fmt(grandNow) + " جنيه";
+        var subtotalRow = document.getElementById("cartSubtotalRow");
+        var deliveryRow = document.getElementById("cartDeliveryRow");
+        if (feeNow > 0) {
+          subtotalRow.hidden = false;
+          document.getElementById("cartSubtotalVal").textContent = fmt(t.total) + " جنيه";
+          deliveryRow.hidden = false;
+          document.getElementById("cartDeliveryVal").textContent = fmt(feeNow) + " جنيه";
+        } else {
+          subtotalRow.hidden = true;
+          deliveryRow.hidden = true;
+        }
+        // Suggestions: بيتطلب مع طلبك — rebuilt on every cart change;
+        // hidden entirely when the cart is empty or every suggestion
+        // is already in the cart
+        var suggSection = document.getElementById("suggestionsSection");
+        var suggList = document.getElementById("suggestionsList");
+        var suggIds = t.count > 0 ? computeSuggestions() : [];
+        if (suggIds.length) {
+          suggSection.hidden = false;
+          suggList.innerHTML = suggIds.map(function (sid) {
+            var sit = CATALOG[sid];
+            return '<div class="suggest-row">' +
+              '<span class="suggest-name">' + sit.n + '</span>' +
+              '<span class="suggest-price">' + fmt(sit.p) + ' جنيه</span>' +
+              '<button type="button" class="suggest-add" data-cart-action="add" data-cart-id="' + sid + '" aria-label="أضف ' + sit.n + ' للطلب">' +
+              '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button></div>';
+          }).join("");
+        } else {
+          suggSection.hidden = true;
+          suggList.innerHTML = "";
+        }
         // Cart view list, in menu order
         var ids = Object.keys(CATALOG).filter(function (id) { return cart[id] > 0; });
         if (!ids.length) {
@@ -1398,6 +1597,14 @@
           if (nm) lines.push("الاسم: " + nm);
           if (ph) lines.push("رقم الموبايل: " + ph);
           lines.push("نوع الطلب: " + (orderType === "delivery" ? "دليفري" : "تيك أواي"));
+          var villageInfo = VILLAGES[deliveryVillage] || VILLAGES.pickup;
+          if (deliveryVillage === "pickup") {
+            lines.push("الاستلام: من المطعم");
+          } else if (deliveryVillage === "other") {
+            lines.push("التوصيل: قرية أخرى (بدون رسوم توصيل — يتم الاتفاق)");
+          } else {
+            lines.push("التوصيل: " + villageInfo.name + " (+" + fmt(villageInfo.fee) + " جنيه)");
+          }
           if (orderType === "delivery") {
             var ad = custAddress.value.trim();
             if (ad) lines.push("العنوان: " + ad);
@@ -1409,7 +1616,12 @@
             var it = CATALOG[id];
             lines.push("• " + it.n + " × " + cart[id] + " — " + fmt(it.p * cart[id]) + " جنيه (الواحد " + fmt(it.p) + " جنيه)");
           });
-          lines.push("", "الإجمالي: " + fmt(t.total) + " جنيه");
+          lines.push("");
+          if (feeNow > 0) {
+            lines.push("مجموع الأصناف: " + fmt(t.total) + " جنيه");
+            lines.push("التوصيل: " + fmt(feeNow) + " جنيه");
+          }
+          lines.push("الإجمالي: " + fmt(grandNow) + " جنيه");
           sendOrderWa.setAttribute("href", "https://wa.me/201011991017?text=" + encodeURIComponent(lines.join("\n")));
           sendOrderWa.classList.remove("disabled");
         }
@@ -1430,17 +1642,36 @@
         renderCart();
       });
 
-      // Order type pills: دليفري reveals the address field, تيك أواي hides it
+      // Order type pills stay in sync with the village choice:
+      // تيك أواي = استلام من المطعم, دليفري = a delivery village
       document.querySelectorAll("[data-order-type]").forEach(function (pill) {
         pill.addEventListener("click", function () {
-          orderType = pill.getAttribute("data-order-type");
-          document.querySelectorAll("[data-order-type]").forEach(function (p) {
-            p.classList.toggle("active", p === pill);
-          });
-          addressWrap.hidden = orderType !== "delivery";
+          var type = pill.getAttribute("data-order-type");
+          if (type === "takeaway") {
+            if (deliveryVillage !== "pickup") lastVillage = deliveryVillage;
+            deliveryVillage = "pickup";
+          } else {
+            if (deliveryVillage === "pickup") deliveryVillage = lastVillage || "sharshaba";
+          }
+          syncDeliveryUI();
+          saveCustomer();
           renderCart();
         });
       });
+
+      // Village select: drives the delivery fee, the address field
+      // visibility and the order type; remembered with the customer
+      // details for the next order
+      if (villageSelect) {
+        villageSelect.addEventListener("change", function () {
+          deliveryVillage = VILLAGES[villageSelect.value] ? villageSelect.value : "pickup";
+          if (deliveryVillage !== "pickup") lastVillage = deliveryVillage;
+          syncDeliveryUI();
+          saveCustomer();
+          renderCart();
+        });
+      }
+      syncDeliveryUI();
 
       // Keep the WhatsApp message in sync with what the customer types,
       // remember the customer details on this device for next time, and
